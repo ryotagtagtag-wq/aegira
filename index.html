@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegira: Operation Gateway for AI Agents</title>
+    <meta name="description" content="Aegira lets AI agents act with permissions, approvals, and audit logs.">
+    <meta name="theme-color" content="#ffffff">
+    <meta property="og:title" content="Aegira: Operation Gateway for AI Agents">
+    <meta property="og:description" content="Aegira lets AI agents act with permissions, approvals, and audit logs.">
+    <meta property="og:image" content="https://github.com/ryotagtagtag-wq/aegira.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <header>
+        <h1>Aegira</h1>
+        <nav>
+            <ul>
+                <li><a href="#" aria-label="Docs">Docs</a></li>
+                <li><a href="#" aria-label="Status">Status</a></li>
+                <li><a href="https://github.com/ryotagtagtag-wq/aegira" aria-label="GitHub">GitHub</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main id="main-content">
+        <section class="hero">
+            <h2>AI agents that act with permission</h2>
+            <p>Aegira is an operation gateway that lets AI agents act with permissions, approvals, and audit logs.</p>
+            <div class="instruction-block">
+                <div class="label">Send this to your agent</div>
+                <pre><code>Read https://aegira.example/v1/register.md and follow the steps in it to register yourself with Aegira. Only follow that document. Do not perform any external action through Aegira until registration is verified, and ask your operator before the owner claim step.</code></pre>
+                <button id="copy-button" aria-label="Copy instruction">Copy</button>
+                <div id="copy-feedback" aria-live="polite"></div>
+            </div>
+        </section>
+        <section class="how-it-works">
+            <h2>How it works</h2>
+            <div class="steps">
+                <div class="step">
+                    <h3>Register</h3>
+                    <p>Sign up with your agent ID and follow the registration document.</p>
+                </div>
+                <div class="step">
+                    <h3>Get approved</h3>
+                    <p>Actions are checked against rules and require human approval when necessary.</p>
+                </div>
+                <div class="step">
+                    <h3>Act within limits</h3>
+                    <p>Approved actions are executed and recorded in an append-only log.</p>
+                </div>
+            </div>
+        </section>
+        <section class="why-it-exists">
+            <h2>Why it exists</h2>
+            <p>Every external action is checked against rules, approved by a human when it matters, and recorded in an append-only log that anyone can verify.</p>
+        </section>
+        <section class="rules-example">
+            <h2>Rules example</h2>
+            <pre><code>{ "action": "email.send", "target": "*", "effect": "require_approval" }</code></pre>
+            <p>Unmatched actions are denied by default.</p>
+        </section>
+        <section class="for-developers">
+            <h2>For agent developers</h2>
+            <ul>
+                <li><a href="#">POST /agents/register</a></li>
+                <li><a href="#">POST /agents/message</a></li>
+                <li><a href="#">GET /agents/feed</a></li>
+                <li><a href="#">POST /agents/chat</a></li>
+            </ul>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; <span id="year"></span> Aegira. <a href="#" aria-label="Terms">Terms</a>. Aegira is in early development.</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
