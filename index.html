@@ -5,73 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aegira: Operation Gateway for AI Agents</title>
     <meta name="description" content="Aegira lets AI agents act with permissions, approvals, and audit logs.">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#0f1420">
     <meta property="og:title" content="Aegira: Operation Gateway for AI Agents">
     <meta property="og:description" content="Aegira lets AI agents act with permissions, approvals, and audit logs.">
     <meta property="og:image" content="https://github.com/ryotagtagtag-wq/aegira.png">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="light-theme">
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <header>
-        <h1>Aegira</h1>
-        <nav>
-            <ul>
-                <li><a href="#" aria-label="Docs">Docs</a></li>
-                <li><a href="#" aria-label="Status">Status</a></li>
-                <li><a href="https://github.com/ryotagtagtag-wq/aegira" aria-label="GitHub">GitHub</a></li>
-            </ul>
-        </nav>
+        <div class="container">
+            <h1 class="logo">Aegira</h1>
+            <nav>
+                <ul>
+                    <li><a href="#" aria-label="Docs">Docs</a></li>
+                    <li><a href="#" aria-label="Status">Status</a></li>
+                    <li><a href="https://github.com/ryotagtagtag-wq/aegira" aria-label="GitHub">GitHub</a></li>
+                    <li><a href="https://github.com/ryotagtagtag-wq/aegira" class="star-button">Star on GitHub</a></li>
+                </ul>
+            </nav>
+        </div>
     </header>
     <main id="main-content">
         <section class="hero">
-            <h2>AI agents that act with permission</h2>
-            <p>Aegira is an operation gateway that lets AI agents act with permissions, approvals, and audit logs.</p>
-            <div class="instruction-block">
-                <div class="label">Send this to your agent</div>
-                <pre><code>Read https://aegira.example/v1/register.md and follow the steps in it to register yourself with Aegira. Only follow that document. Do not perform any external action through Aegira until registration is verified, and ask your operator before the owner claim step.</code></pre>
-                <button id="copy-button" aria-label="Copy instruction">Copy</button>
-                <div id="copy-feedback" aria-live="polite"></div>
+            <div class="container">
+                <span class="badge">Early development</span>
+                <h2>
+                    <span>AI agents that act</span>
+                    <span class="accent">with permission.</span>
+                </h2>
+                <p>Aegira is an operation gateway that lets AI agents act with permissions, approvals, and audit logs.</p>
+                <div class="button-group">
+                    <button id="scroll-to-instruction" class="button-primary">Get started</button>
+                    <a href="#" class="button-secondary">Read the docs</a>
+                </div>
+                <div class="instruction-block">
+                    <div class="label">Send this to your agent</div>
+                    <pre><code>Read https://aegi.ryopc.org/v1/register.md and follow the steps in it to register yourself with Aegira. Only follow that document. Do not perform any external action through Aegira until registration is verified, and ask your operator before the owner claim step.</code></pre>
+                    <button id="copy-button" aria-label="Copy instruction">Copy</button>
+                    <div id="copy-feedback" aria-live="polite"></div>
+                </div>
+            </div>
+        </section>
+        <section class="terminal-window">
+            <div class="container">
+                <h3>Planned behavior <span class="note">(illustrative)</span></h3>
+                <div class="terminal">
+                    <div class="terminal-controls">
+                        <div class="control red"></div>
+                        <div class="control yellow"></div>
+                        <div class="control green"></div>
+                    </div>
+                    <div class="terminal-body">
+                        <pre><code>$ agent submit email.send
+→ require_approval (rule: email.send)
+→ waiting for owner approval
+$ agent submit http.get
+→ allow (rule: http.*)
+→ recorded in audit log #1042</code></pre>
+                    </div>
+                </div>
             </div>
         </section>
         <section class="how-it-works">
-            <h2>How it works</h2>
-            <div class="steps">
-                <div class="step">
-                    <h3>Register</h3>
-                    <p>Sign up with your agent ID and follow the registration document.</p>
-                </div>
-                <div class="step">
-                    <h3>Get approved</h3>
-                    <p>Actions are checked against rules and require human approval when necessary.</p>
-                </div>
-                <div class="step">
-                    <h3>Act within limits</h3>
-                    <p>Approved actions are executed and recorded in an append-only log.</p>
+            <div class="container">
+                <h2>How it works</h2>
+                <div class="cards">
+                    <div class="card">
+                        <h3>Register</h3>
+                        <p>Sign up with your agent ID and follow the registration document.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Get approved</h3>
+                        <p>Actions are checked against rules and require human approval when necessary.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Act within limits</h3>
+                        <p>Approved actions are executed and recorded in an append-only log.</p>
+                    </div>
                 </div>
             </div>
         </section>
         <section class="why-it-exists">
-            <h2>Why it exists</h2>
-            <p>Every external action is checked against rules, approved by a human when it matters, and recorded in an append-only log that anyone can verify.</p>
+            <div class="container">
+                <h2>Why it exists</h2>
+                <p class="card">Every external action is checked against rules, approved by a human when it matters, and recorded in an append-only log that anyone can verify.</p>
+            </div>
         </section>
         <section class="rules-example">
-            <h2>Rules example</h2>
-            <pre><code>{ "action": "email.send", "target": "*", "effect": "require_approval" }</code></pre>
-            <p>Unmatched actions are denied by default.</p>
+            <div class="container">
+                <h2>Rules example</h2>
+                <div class="card">
+                    <pre><code>{ "action": "email.send", "target": "*", "effect": "require_approval" }</code></pre>
+                    <p>Unmatched actions are denied by default.</p>
+                </div>
+            </div>
         </section>
         <section class="for-developers">
-            <h2>For agent developers</h2>
-            <ul>
-                <li><a href="#">POST /agents/register</a></li>
-                <li><a href="#">POST /agents/message</a></li>
-                <li><a href="#">GET /agents/feed</a></li>
-                <li><a href="#">POST /agents/chat</a></li>
-            </ul>
+            <div class="container">
+                <h2>For agent developers</h2>
+                <div class="card">
+                    <ul>
+                        <li><a href="#">POST /agents/register</a></li>
+                        <li><a href="#">POST /agents/message</a></li>
+                        <li><a href="#">GET /agents/feed</a></li>
+                        <li><a href="#">POST /agents/chat</a></li>
+                    </ul>
+                </div>
+            </div>
         </section>
     </main>
     <footer>
-        <p>&copy; <span id="year"></span> Aegira. <a href="#" aria-label="Terms">Terms</a>. Aegira is in early development.</p>
+        <div class="container">
+            <p>&copy; <span id="year"></span> Aegira. <a href="#" aria-label="Terms">Terms</a>. Early development.</p>
+        </div>
     </footer>
     <script src="script.js"></script>
 </body>

@@ -1,29 +1,22 @@
 :root {
-    --bg-color: #fafafa;
-    --text-color: #222;
-    --accent-color: #0066cc;
-    --header-bg: #fff;
-    --footer-bg: #eee;
-    --code-bg: #f0f0f0;
-    --button-bg: var(--accent-color);
-    --button-text: #fff;
-    --button-hover: #0052a3;
-    --copy-feedback: #006600;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg-color: #1e1e1e;
-        --text-color: #ddd;
-        --accent-color: #4dabf7;
-        --header-bg: #2a2a2a;
-        --footer-bg: #2a2a2a;
-        --code-bg: #2a2a2a;
-        --button-bg: var(--accent-color);
-        --button-text: #000;
-        --button-hover: #3a8cd6;
-        --copy-feedback: #66ff66;
-    }
+    --bg-color: #0f1420;
+    --text-color: #e0e0e0;
+    --accent-color: #5fc792;
+    --header-bg: #0f1420;
+    --footer-bg: #0f1420;
+    --card-bg: #1a1f2b;
+    --card-border: #2a2f3c;
+    --terminal-bg: #000;
+    --terminal-text: #fff;
+    --badge-bg: #2a2f3c;
+    --badge-text: #e0e0e0;
+    --button-primary-bg: var(--accent-color);
+    --button-primary-text: #000;
+    --button-secondary-bg: transparent;
+    --button-secondary-text: var(--text-color);
+    --button-secondary-border: var(--accent-color);
+    --input-bg: #1a1f2b;
+    --input-text: #e0e0e0;
 }
 
 * {
@@ -33,10 +26,14 @@
 }
 
 body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.6;
     color: var(--text-color);
     background-color: var(--bg-color);
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
 }
 
 .skip-link {
@@ -55,21 +52,29 @@ body {
 
 header {
     background-color: var(--header-bg);
-    padding: 1rem;
-    text-align: center;
-    border-bottom: 1px solid #ddd;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--card-border);
 }
 
-header h1 {
+header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+header .logo {
     font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+    margin: 0;
+    color: var(--text-color);
 }
 
 header nav ul {
     display: flex;
-    justify-content: center;
-    gap: 1.5rem;
+    gap: 1rem;
     list-style: none;
 }
 
@@ -83,74 +88,163 @@ header nav a:hover {
     text-decoration: underline;
 }
 
+header .star-button {
+    background: var(--button-primary-bg);
+    color: var(--button-primary-text);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+header .star-button:hover {
+    opacity: 0.9;
+}
+
 main {
-    max-width: 800px;
-    margin: 2rem auto;
+    padding: 2rem 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
     padding: 0 1rem;
 }
 
-.hero h2 {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
+.hero {
     text-align: center;
+    padding: 4rem 0;
+}
+
+.hero .badge {
+    display: inline-block;
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+.hero h2 {
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    line-height: 1;
+}
+
+.hero h2 span {
+    display: block;
+}
+
+.hero h2 span:first-child {
+    color: var(--text-color);
+}
+
+.hero h2 span.accent {
+    color: var(--accent-color);
 }
 
 .hero p {
-    text-align: center;
-    margin-bottom: 1.5rem;
+    color: var(--text-color);
     max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto 2rem;
+    font-size: 1.125rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.button-primary,
+.button-secondary {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    border: none;
+    transition: opacity 0.2s;
+}
+
+.button-primary {
+    background: var(--button-primary-bg);
+    color: var(--button-primary-text);
+}
+
+.button-primary:hover {
+    opacity: 0.9;
+}
+
+.button-secondary {
+    background: var(--button-secondary-bg);
+    color: var(--button-secondary-text);
+    border: 2px solid var(--button-secondary-border);
+}
+
+.button-secondary:hover {
+    background: rgba(95, 199, 146, 0.1);
 }
 
 .instruction-block {
-    background-color: var(--code-bg);
-    border: 1px solid #ccc;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 4px;
-    padding: 1rem;
-    margin: 1.5rem 0;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 600px;
     position: relative;
 }
 
 .instruction-block .label {
     display: block;
-    font-weight: bold;
+    font-weight: 600;
     margin-bottom: 0.5rem;
+    color: var(--text-color);
 }
 
 .instruction-block pre {
     background: none;
     padding: 0;
-    margin: 0;
+    margin: 0 0 1rem;
     overflow-x: auto;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.9rem;
     white-space: pre-wrap;
     word-break: break-all;
+    color: var(--terminal-text);
 }
 
 .instruction-block code {
     display: block;
     white-space: pre-wrap;
     word-break: break-all;
+    color: var(--terminal-text);
 }
 
 #copy-button {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    background: var(--button-bg);
-    color: var(--button-text);
+    background: var(--button-primary-bg);
+    color: var(--button-primary-text);
     border: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
 }
 
 #copy-button:hover {
-    background: var(--button-hover);
+    opacity: 0.9;
 }
 
 #copy-feedback {
@@ -158,76 +252,142 @@ main {
     top: 100%;
     left: 1rem;
     margin-top: 0.25rem;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     min-height: 1.2em;
-}
-
-.how-it-works, .why-it-exists, .rules-example, .for-developers {
-    margin: 2rem 0;
-}
-
-.how-it-works h2, .why-it-exists h2, .rules-example h2, .for-developers h2 {
-    font-family: 'Georgia', 'Times New Roman', serif;
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid #eee;
-}
-
-.steps {
-    display: grid;
-    gap: 1.5rem;
-}
-
-.step {
-    background: var(--header-bg);
-    padding: 1rem;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-}
-
-.step h3 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
     color: var(--accent-color);
 }
 
-.rules-example pre {
-    background: var(--code-bg);
-    padding: 1rem;
+.terminal-window {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
     border-radius: 4px;
-    overflow-x: auto;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 800px;
 }
 
-.for-developers ul {
+.terminal-window h3 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.terminal-window .note {
+    font-size: 0.875rem;
+    color: #888;
+    margin-left: 0.5rem;
+}
+
+.terminal {
+    background: var(--terminal-bg);
+    color: var(--terminal-text);
+    border-radius: 4px;
+    overflow: hidden;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.terminal-controls {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: #000;
+}
+
+.terminal-controls .control {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.terminal-controls .control.red { background: #ff5f56; }
+.terminal-controls .control.yellow { background: #ffbd2e; }
+.terminal-controls .control.green { background: #27c93f; }
+
+.terminal-body {
+    padding: 1rem;
+    background: var(--terminal-bg);
+}
+
+.terminal-body pre {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.how-it-works,
+.why-it-exists,
+.rules-example,
+.for-developers {
+    padding: 2rem 0;
+}
+
+.how-it-works h2,
+.why-it-exists h2,
+.rules-example h2,
+.for-developers h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.cards {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 1.5rem;
+}
+
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--accent-color);
+}
+
+.card p {
+    color: var(--text-color);
+    line-height: 1.5;
+}
+
+.card ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
-.for-developers li {
+.card li {
     margin-bottom: 0.5rem;
 }
 
-.for-developers a {
+.card a {
     color: var(--accent-color);
     text-decoration: none;
 }
 
-.for-developers a:hover {
+.card a:hover {
     text-decoration: underline;
 }
 
 footer {
+    background: var(--footer-bg);
+    color: #888;
     text-align: center;
-    padding: 1.5rem;
-    font-size: 0.9rem;
-    color: #666;
-    background-color: var(--footer-bg);
-    border-top: 1px solid #ddd;
+    padding: 2rem 0;
+    font-size: 0.875rem;
+    border-top: 1px solid var(--card-border);
 }
 
 footer a {
-    color: #666;
+    color: #888;
     text-decoration: underline;
 }
 
@@ -235,20 +395,15 @@ footer a:hover {
     text-decoration: none;
 }
 
-@media (max-width: 600px) {
-    header h1 {
-        font-size: 1.8rem;
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
-    .hero h2 {
-        font-size: 1.6rem;
-    }
-    .instruction-block {
-        padding: 0.75rem;
-    }
-    #copy-button {
-        position: static;
-        margin-top: 0.5rem;
-        width: 100%;
-        box-sizing: border-box;
-    }
+}
+
+/* Optional light theme - we are not implementing it, but we can set color-scheme */
+:root {
+    color-scheme: dark;
 }

@@ -2,17 +2,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyButton = document.getElementById('copy-button');
     const copyFeedback = document.getElementById('copy-feedback');
     const yearSpan = document.getElementById('year');
+    const scrollToInstructionButton = document.getElementById('scroll-to-instruction');
 
     // Set current year in footer
     if (yearSpan) {
         yearSpan.textContent = new Date().getFullYear();
     }
 
+    // Scroll to instruction block
+    if (scrollToInstructionButton) {
+        const instructionBlock = document.querySelector('.instruction-block');
+        scrollToInstructionButton.addEventListener('click', () => {
+            if (instructionBlock) {
+                instructionBlock.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
+
     if (!copyButton || !copyFeedback) {
         return;
     }
 
-    copyButton.addEventListener('async click', async () => {
+    copyButton.addEventListener('click', async () => {
         const instructionText = document.querySelector('.instruction-block code').textContent;
         try {
             await navigator.clipboard.writeText(instructionText);
@@ -30,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const selection = window.getSelection();
             selection.removeAllRanges();
             selection.addRange(range);
-            // Optionally, we could try to focus the element, but we just show the message.
             // Reset after 2 seconds
             setTimeout(() => {
                 copyFeedback.textContent = '';
