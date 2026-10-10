@@ -1,0 +1,38 @@
+{
+  "source": "koshi.js.org (style reference, permitted by the owner)",
+  "colors": {
+    "background": "#0f172a",
+    "surface": "#1e293b",
+    "text": "#e2e8f0",
+    "textMuted": "#64748b",
+    "accent": "#34d399",
+    "border": "#34d399"
+  },
+  "fonts": {
+    "sans": "Inter",
+    "mono": "JetBrains Mono"
+  },
+  "fontWeights": {
+    "body": 400,
+    "heading": 800
+  },
+  "radius": {
+    "button": "9999px",
+    "card": "12px",
+    "window": "12px"
+  },
+  "shadow": {
+    "panel": "0 0 40px rgba(52, 211, 153, 0.15), 0 0 80px rgba(52, 211, 153, 0.05)"
+  },
+  "spacing": {
+    "section": "96px",
+    "card": "24px"
+  },
+  "rawRootVariables": {},
+  "notes": [
+    "fontWeights.heading: fallback used (no explicit heading weight found in CSS)",
+    "spacing.section: fallback used (no clear section padding found in CSS)",
+    "spacing.card: fallback used (used code-block horizontal padding as reference but opted for fallback value)",
+    "border: fallback used (no solid border color found; used accent color)"
+  ]
+}

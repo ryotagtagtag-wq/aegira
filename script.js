@@ -2,17 +2,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const copyButton = document.getElementById('copy-button');
     const copyFeedback = document.getElementById('copy-feedback');
     const yearSpan = document.getElementById('year');
-    const scrollToInstructionButton = document.getElementById('scroll-to-instruction');
 
     // Set current year in footer
     if (yearSpan) {
         yearSpan.textContent = new Date().getFullYear();
     }
 
-    // Scroll to instruction block
-    if (scrollToInstructionButton) {
-        const instructionBlock = document.querySelector('.instruction-block');
-        scrollToInstructionButton.addEventListener('click', () => {
+    // Scroll to instruction block when "Get started" button is clicked
+    const getStartedButton = document.querySelector('a[href="#register"]');
+    if (getStartedButton) {
+        getStartedButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            const instructionBlock = document.querySelector('.instruction-block');
             if (instructionBlock) {
                 instructionBlock.scrollIntoView({ behavior: 'smooth' });
             }

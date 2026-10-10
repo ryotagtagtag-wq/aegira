@@ -1,22 +1,32 @@
 :root {
-    --bg-color: #0f1420;
-    --text-color: #e0e0e0;
-    --accent-color: #5fc792;
-    --header-bg: #0f1420;
-    --footer-bg: #0f1420;
-    --card-bg: #1a1f2b;
-    --card-border: #2a2f3c;
-    --terminal-bg: #000;
-    --terminal-text: #fff;
-    --badge-bg: #2a2f3c;
-    --badge-text: #e0e0e0;
+    --bg-color: #0f172a;
+    --text-color: #e2e8f0;
+    --accent-color: #34d399;
+    --header-bg: #0f172a;
+    --footer-bg: #0f172a;
+    --card-bg: #1e293b;
+    --card-border: #34d399;
+    --terminal-bg: #0f172a;
+    --terminal-text: #e2e8f0;
+    --badge-bg: #34d39920; /* 20% opacity */
+    --badge-text: #34d399;
     --button-primary-bg: var(--accent-color);
     --button-primary-text: #000;
     --button-secondary-bg: transparent;
     --button-secondary-text: var(--text-color);
     --button-secondary-border: var(--accent-color);
-    --input-bg: #1a1f2b;
-    --input-text: #e0e0e0;
+    --input-bg: #1e293b;
+    --input-text: #e2e8f0;
+}
+
+/* Make sure we use the tokens for spacing and radius */
+:root {
+    --radius-button: 9999px;
+    --radius-card: 12px;
+    --radius-window: 12px;
+    --shadow-panel: 0 0 40px rgba(52, 211, 153, 0.15), 0 0 80px rgba(52, 211, 153, 0.05);
+    --spacing-section: 96px;
+    --spacing-card: 24px;
 }
 
 * {
@@ -26,7 +36,7 @@
 }
 
 body {
-    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
     line-height: 1.6;
     color: var(--text-color);
     background-color: var(--bg-color);
@@ -34,6 +44,7 @@ body {
         linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
     background-size: 20px 20px;
+    color-scheme: dark;
 }
 
 .skip-link {
@@ -66,9 +77,29 @@ header .container {
 }
 
 header .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+header .logo-square {
+    width: 32px;
+    height: 32px;
+    background: var(--accent-color);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: #000;
+    font-size: 1.2rem;
+}
+
+header .logo-text {
     font-family: 'Georgia', 'Times New Roman', serif;
     font-size: 1.8rem;
     margin: 0;
+    letter-spacing: -0.02em;
     color: var(--text-color);
 }
 
@@ -93,7 +124,7 @@ header .star-button {
     color: var(--button-primary-text);
     border: none;
     padding: 0.5rem 1rem;
-    border-radius: 4px;
+    border-radius: var(--radius-button);
     cursor: pointer;
     font-weight: 600;
 }
@@ -118,18 +149,27 @@ main {
 }
 
 .hero .badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     background: var(--badge-bg);
     color: var(--badge-text);
     padding: 0.25rem 0.75rem;
-    border-radius: 4px;
+    border-radius: 9999px;
     font-size: 0.875rem;
     margin-bottom: 1.5rem;
 }
 
+.hero .badge .dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-color);
+    border-radius: 50%;
+}
+
 .hero h2 {
     font-size: clamp(2.5rem, 8vw, 4rem);
-    font-weight: 900;
+    font-weight: 800;
     letter-spacing: -0.02em;
     margin: 0 0 0.5rem;
     display: flex;
@@ -167,7 +207,7 @@ main {
 .button-primary,
 .button-secondary {
     padding: 0.75rem 1.5rem;
-    border-radius: 4px;
+    border-radius: var(--radius-button);
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
@@ -197,7 +237,7 @@ main {
 .instruction-block {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 4px;
+    border-radius: var(--radius-card);
     padding: 2rem;
     margin: 2rem auto;
     max-width: 600px;
@@ -260,7 +300,7 @@ main {
 .terminal-window {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 4px;
+    border-radius: var(--radius-window);
     padding: 2rem;
     margin: 2rem auto;
     max-width: 800px;
@@ -283,7 +323,7 @@ main {
 .terminal {
     background: var(--terminal-bg);
     color: var(--terminal-text);
-    border-radius: 4px;
+    border-radius: var(--radius-window);
     overflow: hidden;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -301,9 +341,9 @@ main {
     border-radius: 50%;
 }
 
-.terminal-controls .control.red { background: #ff5f56; }
-.terminal-controls .control.yellow { background: #ffbd2e; }
-.terminal-controls .control.green { background: #27c93f; }
+.terminal-controls .control.red { background: #ef4444; }
+.terminal-controls .control.yellow { background: #eab308; }
+.terminal-controls .control.green { background: #22c55e; }
 
 .terminal-body {
     padding: 1rem;
@@ -343,7 +383,7 @@ main {
 .card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 4px;
+    border-radius: var(--radius-card);
     padding: 1.5rem;
 }
 
@@ -356,25 +396,6 @@ main {
 .card p {
     color: var(--text-color);
     line-height: 1.5;
-}
-
-.card ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.card li {
-    margin-bottom: 0.5rem;
-}
-
-.card a {
-    color: var(--accent-color);
-    text-decoration: none;
-}
-
-.card a:hover {
-    text-decoration: underline;
 }
 
 footer {

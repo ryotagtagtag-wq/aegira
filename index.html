@@ -1,21 +1,29 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegira: Operation Gateway for AI Agents</title>
+    <title>Aegira</title>
     <meta name="description" content="Aegira lets AI agents act with permissions, approvals, and audit logs.">
-    <meta name="theme-color" content="#0f1420">
-    <meta property="og:title" content="Aegira: Operation Gateway for AI Agents">
+    <meta name="theme-color" content="#0f172a">
+    <meta property="og:title" content="Aegira">
     <meta property="og:description" content="Aegira lets AI agents act with permissions, approvals, and audit logs.">
-    <meta property="og:image" content="https://github.com/ryotagtagtag-wq/aegira.png">
+    <meta property="og:url" content="https://aegi.ryopc.org/">
+    <meta name="color-scheme" content="dark">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <script defer src="script.js"></script>
 </head>
-<body class="light-theme">
+<body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <header>
         <div class="container">
-            <h1 class="logo">Aegira</h1>
+            <div class="logo">
+                <div class="logo-square">A</div>
+                <div class="logo-text">AEGIRA</div>
+            </div>
             <nav>
                 <ul>
                     <li><a href="#" aria-label="Docs">Docs</a></li>
@@ -29,15 +37,16 @@
     <main id="main-content">
         <section class="hero">
             <div class="container">
-                <span class="badge">Early development</span>
+                <span class="badge"><span class="dot"></span>Early development</span>
                 <h2>
                     <span>AI agents that act</span>
                     <span class="accent">with permission.</span>
                 </h2>
-                <p>Aegira is an operation gateway that lets AI agents act with permissions, approvals, and audit logs.</p>
+                <p>Aegira is an operation gateway. It checks every external action against rules, asks a human when it matters, and records the result in an append-only log.</p>
                 <div class="button-group">
-                    <button id="scroll-to-instruction" class="button-primary">Get started</button>
+                    <a href="#register" class="button-primary">Get started</a>
                     <a href="#" class="button-secondary">Read the docs</a>
+                    <a href="https://github.com/ryotagtagtag-wq/aegira" class="button-secondary">Star on GitHub</a>
                 </div>
                 <div class="instruction-block">
                     <div class="label">Send this to your agent</div>
@@ -47,7 +56,7 @@
                 </div>
             </div>
         </section>
-        <section class="terminal-window">
+        <section class="terminal-window" id="terminal">
             <div class="container">
                 <h3>Planned behavior <span class="note">(illustrative)</span></h3>
                 <div class="terminal">
@@ -73,15 +82,15 @@ $ agent submit http.get
                 <div class="cards">
                     <div class="card">
                         <h3>Register</h3>
-                        <p>Sign up with your agent ID and follow the registration document.</p>
+                        <p>The agent registers with its own key and an operator who is responsible for it.</p>
                     </div>
                     <div class="card">
                         <h3>Get approved</h3>
-                        <p>Actions are checked against rules and require human approval when necessary.</p>
+                        <p>Actions are checked against rules. Actions that need approval wait for a human.</p>
                     </div>
                     <div class="card">
                         <h3>Act within limits</h3>
-                        <p>Approved actions are executed and recorded in an append-only log.</p>
+                        <p>Allowed actions run within their rules. Every result is written to an audit log.</p>
                     </div>
                 </div>
             </div>
@@ -90,6 +99,7 @@ $ agent submit http.get
             <div class="container">
                 <h2>Why it exists</h2>
                 <p class="card">Every external action is checked against rules, approved by a human when it matters, and recorded in an append-only log that anyone can verify.</p>
+                <p class="card">The gateway itself is in development.</p>
             </div>
         </section>
         <section class="rules-example">
@@ -103,13 +113,15 @@ $ agent submit http.get
         </section>
         <section class="for-developers">
             <div class="container">
-                <h2>For agent developers</h2>
+                <h2>For developers</h2>
                 <div class="card">
+                    <p>Planned</p>
                     <ul>
-                        <li><a href="#">POST /agents/register</a></li>
-                        <li><a href="#">POST /agents/message</a></li>
-                        <li><a href="#">GET /agents/feed</a></li>
-                        <li><a href="#">POST /agents/chat</a></li>
+                        <li><a href="#">POST /v1/actions</a></li>
+                        <li><a href="#">GET /v1/actions/:id</a></li>
+                        <li><a href="#">POST /v1/approvals/:id</a></li>
+                        <li><a href="#">GET /v1/audit</a></li>
+                        <li><a href="#">GET /v1/audit/verify</a></li>
                     </ul>
                 </div>
             </div>
@@ -117,9 +129,8 @@ $ agent submit http.get
     </main>
     <footer>
         <div class="container">
-            <p>&copy; <span id="year"></span> Aegira. <a href="#" aria-label="Terms">Terms</a>. Early development.</p>
+            <p>&copy; <span id="year"></span> Aegira. <a href="#" aria-label="Terms">Terms</a>. <a href="https://github.com/ryotagtagtag-wq/aegira">GitHub</a>. Early development.</p>
         </div>
     </footer>
-    <script src="script.js"></script>
 </body>
 </html>
