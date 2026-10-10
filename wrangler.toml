@@ -1,0 +1,7 @@
+name = "aegira"
+main = "src/worker/index.js"
+compatibility_date = "2024-01-01"
+
+[[durable_objects]]
+  binding = "GATEWAY_STATE"
+  class_name = "GatewayState"
