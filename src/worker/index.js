@@ -76,21 +76,52 @@ async function handleApiRequest(request, env, ctx) {
     return Response.json(status);
   }
 
-  // Public API: /v1/device/code (Planned)
+  // Public API: /v1/device/code
   if (path === '/v1/device/code' && method === 'POST') {
-    // We'll check if registration is open.
-    const status = await stub.getStatus();
-    if (!status.registration_open) {
-      return registrationClosed();
+    // Parse JSON body for agent_name and actions.
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return badRequest();
     }
-    // For now, we return a fake device code.
-    // In a real implementation, we would generate a device code and store it.
-    return Response.json({
-      user_code: 'ABCD-EFGH',
-      verification_uri: 'https://aegi.ryopc.org/v1/device',
-      expires_in: 900,
-      interval: 5
-    });
+    const { agent_name, actions } = body;
+    if (!agent_name || typeof agent_name !== 'string' || !actions || typeof actions !== 'string') {
+      return badRequest();
+    }
+    try {
+      // This will check registration and generate/store the device code.
+      const result = await stub.storeDeviceCode(agent_name, actions);
+      return Response.json(result);
+    } catch (err) {
+      if (err.message === 'registration_closed') {
+        return registrationClosed();
+      }
+      // Other errors (e.g., storage) -> internal error.
+      return internalError();
+    }
+  }
+
+  // Public API: /v1/device/token
+  if (path === '/v1/device/token' && method === 'POST') {
+    // Parse JSON body for device_code.
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return badRequest();
+    }
+    const { device_code } = body;
+    if (!device_code || typeof device_code !== 'string') {
+      return badRequest();
+    }
+    try {
+      const result = await stub.handleTokenRequest(device_code);
+      // result is { statusCode, body } where body is already a JSON string.
+      return new Response(result.body, { status: result.statusCode, headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      return internalError();
+    }
   }
 
   // Public API: /v1/device/approve
@@ -104,61 +135,13 @@ async function handleApiRequest(request, env, ctx) {
     }
     const { user_code, decision } = body;
     if (!user_code || typeof user_code !== 'string' || !decision || (decision !== 'approve' && decision !== 'deny')) {
-      return badRequest();
+      return new Response(JSON.stringify({ error: 'validation failed', user_code: user_code, decision: decision, typeof_user_code: typeof user_code, body: JSON.stringify(body) }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
-    // Check registration open.
-    const status = await stub.getStatus();
-    if (!status.registration_open) {
-      return registrationClosed();
-    }
-    // Consume the device code.
-    const deviceData = await stub.consumeDeviceCode(user_code);
-    if (!deviceData) {
-      // Could be unknown, expired, or already used.
-      // We need to differentiate? The instruction says:
-      //   - Reject when registration is closed (403 registration_closed), when the code is unknown or
-      //     expired (400 invalid_or_expired), or when already used (409 already_used).
-      // We'll check if the code exists at all.
-      const exists = await stub.deviceCodeExists(user_code);
-      if (!exists) {
-        return invalidOrExpired(); // unknown or expired? We'll treat as invalid_or_expired for simplicity.
-        // To differentiate, we could check expiration separately, but we can leave it as invalid_or_expired.
-        // The instruction says unknown or expired -> 400 invalid_or_expired.
-        // We'll return invalid_or_expired for both.
-      } else {
-        // Exists but used.
-        return alreadyUsed();
-      }
-    }
-    // If decision is approve, issue an API key.
-    if (decision === 'approve') {
-      const apiKey = await stub.issueApiKey();
-      // We should not return the API key in the response body? The instruction says:
-      //   approve issues an api_key once, stores only its SHA-256 hash, and writes an audit entry.
-      //   Never reveal an api_key on this endpoint's response page; the key is returned only to
-      //   /v1/device/token polling, as the register.md describes.
-      // So we should not return the API key here. Instead, we return a success message and tell the user to poll.
-      // However, the register.md (which we are not changing) likely describes the flow.
-      // We'll return a JSON indicating that the API key can be polled.
-      return Response.json({
-        message: 'Approval successful. Poll /v1/device/token for the API key.'
-      });
-    } else {
-      // Decision is deny: we just write an audit entry for denial.
-      // We'll write an audit entry for the denial.
-      const seq = await stub.getAuditHeadSeq() || 0;
-      const newSeq = seq + 1;
-      await stub.putAuditHeadSeq(newSeq);
-      await stub.putAuditEntry(newSeq, {
-        seq: newSeq,
-        time: new Date().toISOString(),
-        event: 'device.code.denied',
-        actor: 'user',
-        decision: 'denied',
-        summary: `Device code ${user_code} was denied.`,
-        params_digest: null
-      });
-      return Response.json({ message: 'Denied.' });
+    try {
+      const result = await stub.handleApproveRequest(user_code, decision);
+      return new Response(result.body, { status: result.statusCode, headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      return internalError();
     }
   }
 
@@ -177,10 +160,6 @@ async function handleApiRequest(request, env, ctx) {
       return internalError(); // Admin is not configured.
     }
     // We'll do a constant-time comparison.
-    const tokenBuffer = new TextEncoder().encode(token);
-    const keyBuffer = new TextEncoder().encode(adminKey);
-    const tokenHash = await sha256Hex(token); // we have a hex version
-    const keyHash = await sha256Hex(adminKey);
     if (!constantTimeEqualStr(token, adminKey)) {
       return unauthorized();
     }
@@ -256,10 +235,8 @@ async function handleAdminPage(request, env, ctx) {
   if (!authHeader || !authHeader.startsWith('Basic ')) {
     return unauthorized();
   }
-  // We'll wait 1 second before responding to prevent timing attacks? The spec says wait 1 second before responding on failure.
-  // We'll do that only on failure? We'll do it always to avoid leaking information about the password.
-  // But we'll do it after we check the password? We'll do it before we check the password to avoid leaking that the password is set.
-  // We'll wait 1 second in any case.
+
+  // Wait 1 second before responding to prevent timing attacks.
   await new Promise(resolve => setTimeout(resolve, 1000));
 
   const base64Credentials = authHeader.slice(6);
@@ -1056,6 +1033,8 @@ async function handleDevicePage(request, env, ctx) {
     });
   }
 
+  // Note: The /v1/device/approve endpoint is now handled in handleApiRequest.
+  // We keep this fallback for safety, but it should never be reached.
   if (request.method === 'POST' && path === '/v1/device/approve') {
     // This should be handled by handleApiRequest, but we keep a fallback.
     return handleApiRequest(request, env, ctx);
@@ -1064,3 +1043,4 @@ async function handleDevicePage(request, env, ctx) {
   // If we reach here, the method is not supported.
   return notFound();
 }
+export { handleApiRequest, handleAdminPage, handleDevicePage };
