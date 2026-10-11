@@ -3,160 +3,65 @@
  * Serves static assets and handles API routes.
  */
 
-// Import the Durable Object class from a separate module? We'll define it here.
+// Import the Durable Object class from a separate module
+import { GatewayState } from '../gateway_state.js';
+// Import shared logic
+import { sha256Hex, constantTimeEqualStr } from '../crypto.js';
+import {
+  notFound,
+  badRequest,
+  unauthorized,
+  forbidden,
+  registrationClosed,
+  invalidOrExpired,
+  alreadyUsed,
+  internalError
+} from '../errors.js';
 
-class GatewayState {
-  /**
-   * @param {DurableObjectState} state
-   * @param {Env} env
-   */
-  constructor(state, env) {
-    this.state = state;
-    this.env = env;
-    // We'll use the state's storage for persistence.
-  }
+// Re-export the Durable Object class for binding
+export { GatewayState };
 
-  async fetch(request) {
-    // This method is called when the Durable Object is fetched via `durableObject.fetch()`.
-    // We'll handle the API requests here? Actually, we will bind the Durable Object to the worker and call its methods from the worker.
-    // We'll not use the fetch method of the Durable Object. Instead, we will use the state's storage and methods.
-    return new Response('Durable Object', { status: 200 });
-  }
-
-  // Methods for the admin API and public API.
-
-  async getStatus() {
-    const [registration_open, registration_changed_at, registration_changed_reason, agents_paused, paused_changed_at, paused_reason, audit_head_seq] = await this.state.storage.get([
-      'registration_open',
-      'registration_changed_at',
-      'registration_changed_reason',
-      'agents_paused',
-      'paused_changed_at',
-      'paused_reason',
-      'audit_head_seq'
-    ]);
-    return {
-      registration: registration_open ? 'open' : 'closed',
-      registration_changed_at: registration_changed_at || null,
-      agents_paused: !!agents_paused,
-      paused_changed_at: paused_changed_at || null,
-      audit_head_seq: audit_head_seq || 0
-    };
-  }
-
-  async setRegistration(open, reason) {
-    const changed = await this.state.storage.compareExchange('registration_open', !open, open);
-    if (changed) {
-      const now = new Date().toISOString();
-      await this.state.storage.put('registration_open', open);
-      await this.state.storage.put('registration_changed_at', now);
-      await this.state.storage.put('registration_changed_reason', reason);
-      // Increment audit head seq and store the audit entry.
-      const seq = await this.state.storage.get('audit_head_seq') || 0;
-      const newSeq = seq + 1;
-      await this.state.storage.put('audit_head_seq', newSeq);
-      await this.state.storage.put(`audit_${newSeq}`, {
-        seq: newSeq,
-        time: now,
-        event: 'registration.changed',
-        actor: 'admin',
-        decision: open ? 'open' : 'closed',
-        summary: reason,
-        params_digest: null
-      });
-    }
-    return changed;
-  }
-
-  async setPause(paused, reason) {
-    const changed = await this.state.storage.compareExchange('agents_paused', !paused, paused);
-    if (changed) {
-      const now = new Date().toISOString();
-      await this.state.storage.put('agents_paused', paused);
-      await this.state.storage.put('paused_changed_at', now);
-      await this.state.storage.put('paused_reason', reason);
-      const seq = await this.state.storage.get('audit_head_seq') || 0;
-      const newSeq = seq + 1;
-      await this.state.storage.put('audit_head_seq', newSeq);
-      await this.state.storage.put(`audit_${newSeq}`, {
-        seq: newSeq,
-        time: now,
-        event: paused ? 'agents.paused' : 'agents.resumed',
-        actor: 'admin',
-        decision: paused ? 'paused' : 'resumed',
-        summary: reason,
-        params_digest: null
-      });
-    }
-    return changed;
-  }
-
-  async getRecentAudit(limit) {
-    const head = await this.state.storage.get('audit_head_seq') || 0;
-    const results = [];
-    for (let i = 0; i < limit && head - i > 0; i++) {
-      const seq = head - i;
-      const entry = await this.state.storage.get(`audit_${seq}`);
-      if (entry) {
-        results.push(entry);
-      }
-    }
-    return results;
-  }
-}
-
-// Add the Durable Object to the worker.
 export default {
   async fetch(request, env, ctx) {
-    // We'll handle the request in the worker.
-    // First, try to serve static assets for known file extensions and root paths.
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // List of static file paths we know about (from the root)
-    const staticFiles = new Set([
-      '/', '/index.html', '/styles.css', '/script.js', '/robots.txt', '/sitemap.xml', '/favicon.ico',
-      '/404.html', '/design-tokens.json', '/v1/register.md'
-    ]);
-
-    // If the path is in the staticFiles set, serve the file.
-    if (staticFiles.has(path)) {
-      try {
-        const file = await fetch(request); // This will fetch from the same origin, which is our worker? We need to get the file from the filesystem.
-        // We cannot fetch from the filesystem directly in the worker without using the `env.ASSETS` binding if we are using Pages.
-        // Since we are not using Pages' static asset serving, we must read the files from the worker's bundle.
-        // We will use the `import.meta` or `__STATIC_CONTENT` if we are using webpack? Not available.
-        // We will instead use a different approach: we will not serve static assets from the worker; we will rely on the existing static site being served by Pages.
-        // Given the confusion, we will assume that the static site is already being served by Pages and we are only adding the API and admin page as Functions.
-        // We will change our approach: we will use the Pages Functions for the API and admin page, and let Pages serve the static assets.
-        // We will then not need to handle static assets in the worker.
-        // We will remove the static asset handling and only handle the API and admin page.
-        // We will then change the wrangler.toml to use the [pages] configuration and put our functions in the `functions` directory.
-        // Let's do that.
-        return new Response('Not implemented', { status: 501 });
-      } catch (e) {
-        return new Response('Not Found', { status: 404 });
-      }
-    }
-
-    // Handle API routes
+    // API routes
     if (path.startsWith('/v1/')) {
-      // We'll handle the API in a separate function.
       return handleApiRequest(request, env, ctx);
     }
 
-    // Handle admin page
+    // Admin page
     if (path === '/admin' || path === '/admin/') {
       return handleAdminPage(request, env, ctx);
     }
 
-    // If nothing else, return 404.
-    return new Response('Not Found', { status: 404 });
+    // Device approval page
+    if (path === '/device' || path === '/device/') {
+      return handleDevicePage(request, env, ctx);
+    }
+
+    // Everything else: serve static assets
+    return await serveStaticAsset(request, env);
   }
 };
 
+/**
+ * Serve a static asset from the ASSETS binding.
+ * Optionally add headers.
+ */
+async function serveStaticAsset(request, env) {
+  // Fetch the asset
+  const assetResponse = await env.ASSETS.fetch(request);
+  // We can add headers here if needed.
+  // For now, return as-is.
+  return assetResponse;
+}
+
+/**
+ * Handle API requests under /v1/*.
+ */
 async function handleApiRequest(request, env, ctx) {
-  // We'll implement the API endpoints here.
   // We need to get the Durable Object stub.
   const gateway = env.GATEWAY_STATE.idFromName('default');
   const stub = env.GATEWAY_STATE.get(gateway);
@@ -176,7 +81,7 @@ async function handleApiRequest(request, env, ctx) {
     // We'll check if registration is open.
     const status = await stub.getStatus();
     if (!status.registration_open) {
-      return Response.json({ error: { code: 'registration_closed', message: 'Registration is closed.' } }, { status: 403 });
+      return registrationClosed();
     }
     // For now, we return a fake device code.
     // In a real implementation, we would generate a device code and store it.
@@ -188,40 +93,103 @@ async function handleApiRequest(request, env, ctx) {
     });
   }
 
+  // Public API: /v1/device/approve
+  if (path === '/v1/device/approve' && method === 'POST') {
+    // Parse JSON body.
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return badRequest();
+    }
+    const { user_code, decision } = body;
+    if (!user_code || typeof user_code !== 'string' || !decision || (decision !== 'approve' && decision !== 'deny')) {
+      return badRequest();
+    }
+    // Check registration open.
+    const status = await stub.getStatus();
+    if (!status.registration_open) {
+      return registrationClosed();
+    }
+    // Consume the device code.
+    const deviceData = await stub.consumeDeviceCode(user_code);
+    if (!deviceData) {
+      // Could be unknown, expired, or already used.
+      // We need to differentiate? The instruction says:
+      //   - Reject when registration is closed (403 registration_closed), when the code is unknown or
+      //     expired (400 invalid_or_expired), or when already used (409 already_used).
+      // We'll check if the code exists at all.
+      const exists = await stub.deviceCodeExists(user_code);
+      if (!exists) {
+        return invalidOrExpired(); // unknown or expired? We'll treat as invalid_or_expired for simplicity.
+        // To differentiate, we could check expiration separately, but we can leave it as invalid_or_expired.
+        // The instruction says unknown or expired -> 400 invalid_or_expired.
+        // We'll return invalid_or_expired for both.
+      } else {
+        // Exists but used.
+        return alreadyUsed();
+      }
+    }
+    // If decision is approve, issue an API key.
+    if (decision === 'approve') {
+      const apiKey = await stub.issueApiKey();
+      // We should not return the API key in the response body? The instruction says:
+      //   approve issues an api_key once, stores only its SHA-256 hash, and writes an audit entry.
+      //   Never reveal an api_key on this endpoint's response page; the key is returned only to
+      //   /v1/device/token polling, as the register.md describes.
+      // So we should not return the API key here. Instead, we return a success message and tell the user to poll.
+      // However, the register.md (which we are not changing) likely describes the flow.
+      // We'll return a JSON indicating that the API key can be polled.
+      return Response.json({
+        message: 'Approval successful. Poll /v1/device/token for the API key.'
+      });
+    } else {
+      // Decision is deny: we just write an audit entry for denial.
+      // We'll write an audit entry for the denial.
+      const seq = await stub.getAuditHeadSeq() || 0;
+      const newSeq = seq + 1;
+      await stub.putAuditHeadSeq(newSeq);
+      await stub.putAuditEntry(newSeq, {
+        seq: newSeq,
+        time: new Date().toISOString(),
+        event: 'device.code.denied',
+        actor: 'user',
+        decision: 'denied',
+        summary: `Device code ${user_code} was denied.`,
+        params_digest: null
+      });
+      return Response.json({ message: 'Denied.' });
+    }
+  }
+
   // Admin API: /v1/admin/*
   if (path.startsWith('/v1/admin/')) {
     // Check for the required headers.
     const authHeader = request.headers.get('Authorization');
     const xAegiraRequest = request.headers.get('X-Aegira-Request');
     if (!authHeader || !authHeader.startsWith('Bearer ') || !xAegiraRequest || xAegiraRequest !== '1') {
-      return new Response('Bad Request', { status: 400 });
+      return badRequest();
     }
     const token = authHeader.slice(7); // Remove 'Bearer '
     // We'll compare the token with the admin key from environment variable.
     const adminKey = env.AEGIRA_ADMIN_KEY;
     if (!adminKey) {
-      return Response.json({ error: { message: 'Admin is not configured.' } }, { status: 503 });
+      return internalError(); // Admin is not configured.
     }
     // We'll do a constant-time comparison.
-    const crypto = globalThis.crypto;
     const tokenBuffer = new TextEncoder().encode(token);
     const keyBuffer = new TextEncoder().encode(adminKey);
-    const tokenHash = await crypto.subtle.digest('SHA-256', tokenBuffer);
-    const keyHash = await crypto.subtle.digest('SHA-256', keyBuffer);
-    // Compare the two hashes in constant time.
-    let diff = 0;
-    for (let i = 0; i < tokenHash.byteLength; i++) {
-      diff |= tokenHash[i] - keyHash[i];
-    }
-    if (diff !== 0) {
-      return new Response('Unauthorized', { status: 401 });
+    const tokenHash = await sha256Hex(token); // we have a hex version
+    const keyHash = await sha256Hex(adminKey);
+    if (!constantTimeEqualStr(token, adminKey)) {
+      return unauthorized();
     }
     // Check IP allowlist if set.
     const allowIps = env.AEGIRA_ADMIN_ALLOW_IPS;
     if (allowIps) {
       const cfConnectingIp = request.headers.get('CF-Connecting-IP');
       if (!cfConnectingIp || !allowIps.split(',').includes(cfConnectingIp.trim())) {
-        return new Response('Forbidden', { status: 403 });
+        return forbidden();
       }
     }
 
@@ -233,7 +201,7 @@ async function handleApiRequest(request, env, ctx) {
     if (path === '/v1/admin/registration' && method === 'POST') {
       const data = await request.json();
       if (!data || typeof data.open !== 'boolean' || typeof data.reason !== 'string' || data.reason.length < 1 || data.reason.length > 200) {
-        return new Response('Bad Request', { status: 400 });
+        return badRequest();
       }
       const changed = await stub.setRegistration(data.open, data.reason);
       const status = await stub.getStatus();
@@ -242,7 +210,7 @@ async function handleApiRequest(request, env, ctx) {
     if (path === '/v1/admin/pause' && method === 'POST') {
       const data = await request.json();
       if (!data || typeof data.paused !== 'boolean' || typeof data.reason !== 'string' || data.reason.length < 1 || data.reason.length > 200) {
-        return new Response('Bad Request', { status: 400 });
+        return badRequest();
       }
       const changed = await stub.setPause(data.paused, data.reason);
       const status = await stub.getStatus();
@@ -251,24 +219,27 @@ async function handleApiRequest(request, env, ctx) {
     if (path === '/v1/admin/audit/recent' && method === 'GET') {
       const limit = parseInt(url.searchParams.get('limit') || '20');
       if (isNaN(limit) || limit < 1 || limit > 50) {
-        return new Response('Bad Request', { status: 400 });
+        return badRequest();
       }
       const recent = await stub.getRecentAudit(limit);
       return Response.json(recent);
     }
     // If we reach here, the endpoint is not found.
-    return new Response('Not Found', { status: 404 });
+    return notFound();
   }
 
   // If we reach here, the API endpoint is not found.
-  return new Response('Not Found', { status: 404 });
+  return notFound();
 }
 
+/**
+ * Handle the admin page.
+ */
 async function handleAdminPage(request, env, ctx) {
   // Check if the admin password is set.
   const adminPassword = env.AEGIRA_ADMIN_PASSWORD;
   if (!adminPassword || adminPassword === '') {
-    return new Response('Admin is not configured.', { status: 503 });
+    return internalError(); // Admin is not configured.
   }
 
   // Check IP allowlist if set.
@@ -276,19 +247,14 @@ async function handleAdminPage(request, env, ctx) {
   if (allowIps) {
     const cfConnectingIp = request.headers.get('CF-Connecting-IP');
     if (!cfConnectingIp || !allowIps.split(',').includes(cfConnectingIp.trim())) {
-      return new Response('Forbidden', { status: 403 });
+      return forbidden();
     }
   }
 
   // Check for Basic auth.
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return new Response('Unauthorized', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="aegira-admin", charset="UTF-8"'
-      }
-    });
+    return unauthorized();
   }
   // We'll wait 1 second before responding to prevent timing attacks? The spec says wait 1 second before responding on failure.
   // We'll do that only on failure? We'll do it always to avoid leaking information about the password.
@@ -301,22 +267,8 @@ async function handleAdminPage(request, env, ctx) {
   const [username, password] = credentials.split(':');
   // We ignore the username.
   // Compare the password with the admin password in constant time.
-  const crypto = globalThis.crypto;
-  const passwordBuffer = new TextEncoder().encode(password);
-  const adminPasswordBuffer = new TextEncoder().encode(adminPassword);
-  const passwordHash = await crypto.subtle.digest('SHA-256', passwordBuffer);
-  const adminPasswordHash = await crypto.subtle.digest('SHA-256', adminPasswordBuffer);
-  let diff = 0;
-  for (let i = 0; i < passwordHash.byteLength; i++) {
-    diff |= passwordHash[i] - adminPasswordHash[i];
-  }
-  if (diff !== 0) {
-    return new Response('Unauthorized', {
-      status: 401,
-      headers: {
-        'WWW-Authenticate': 'Basic realm="aegira-admin", charset="UTF-8"'
-      }
-    });
+  if (!constantTimeEqualStr(password, adminPassword)) {
+    return unauthorized();
   }
 
   // If we get here, the password is correct.
@@ -853,7 +805,262 @@ async function handleAdminPage(request, env, ctx) {
       'X-Robots-Tag': 'noindex, nofollow',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': \`default-src 'none'; script-src 'nonce-\${nonceBase64}'; style-src 'nonce-\${nonceBase64}'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'\`
+      'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonceBase64}'; style-src 'nonce-${nonceBase64}'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`
     }
   });
+}
+
+/**
+ * Handle the device approval page.
+ */
+async function handleDevicePage(request, env, ctx) {
+  if (request.method === 'GET') {
+    // Generate a nonce for the CSP.
+    const nonce = crypto.getRandomValues(new Uint8Array(16));
+    const nonceBase64 = btoa(String.fromCharCode(...nonce));
+
+    // We'll fetch the status from the Durable Object to see if registration is open and to get any pending device code? Actually, the device code is not stored in the Durable Object yet; we will handle that in the POST endpoint.
+    // For the GET page, we just show the form.
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Aegira device approval</title>
+        <meta name="robots" content="noindex, nofollow">
+        <style>
+          :root {
+            --bg-color: #0f172a;
+            --text-color: #e2e8f0;
+            --accent-color: #34d399;
+            --card-bg: #1e293b;
+            --card-border: #34d399;
+            --radius-button: 9999px;
+            --radius-card: 12px;
+            --shadow-panel: 0 0 40px rgba(52,211,153,0.15), 0 0 80px rgba(52,211,153,0.05);
+            --spacing-section: 96px;
+            --spacing-card: 24px;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+          }
+          .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+          }
+          h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+          }
+          .form-group {
+            margin-bottom: 1.5rem;
+          }
+          label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+          }
+          input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-card);
+            background: var(--input-bg);
+            color: var(--input-text);
+          }
+          .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+          }
+          .button-primary,
+          .button-secondary {
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-button);
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: opacity 0.2s;
+          }
+          .button-primary {
+            background: var(--button-primary-bg);
+            color: var(--button-primary-text);
+          }
+          .button-primary:hover {
+            opacity: 0.9;
+          }
+          .button-secondary {
+            background: var(--button-secondary-bg);
+            color: var(--button-secondary-text);
+            border: 2px solid var(--button-secondary-border);
+          }
+          .button-secondary:hover {
+            background: rgba(95, 199, 146, 0.1);
+          }
+        </style>
+        <script nonce="${nonceBase64}">
+          // We'll put the JavaScript for the device page here.
+          document.addEventListener('DOMContentLoaded', () => {
+            const codeInput = document.getElementById('device-code');
+            const submitButton = document.getElementById('submit-code');
+            const resultLine = document.getElementById('result-line');
+            const approvalSection = document.getElementById('approval-section');
+            const agentNameEl = document.getElementById('agent-name');
+            const actionsEl = document.getElementById('actions');
+            const expiryEl = document.getElementById('expiry');
+            const approveButton = document.getElementById('approve-button');
+            const denyButton = document.getElementById('deny-button');
+
+            let deviceCode = '';
+
+            // Handle code input.
+            if (codeInput && submitButton) {
+              submitButton.addEventListener('click', async () => {
+                deviceCode = codeInput.value.trim();
+                // Validate format: XXXX-XXXX
+                if (!/^[0-9A-F]{4}-[0-9A-F]{4}$/i.test(deviceCode)) {
+                  resultLine.textContent = 'Invalid code format. Use XXXX-XXXX.';
+                  resultLine.className = 'result-line error';
+                  return;
+                }
+                // We'll check the code with the backend.
+                try {
+                  const response = await fetch('/v1/device/code', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    // Show the agent name, actions, and expiry.
+                    agentNameEl.textContent = data.agent_name || 'Unknown';
+                    actionsEl.textContent = data.actions || 'None';
+                    expiryEl.textContent = new Date(data.expires_at * 1000).toLocaleString();
+                    approvalSection.style.display = 'block';
+                    resultLine.textContent = '';
+                    resultLine.className = '';
+                  } else {
+                    const error = await response.json();
+                    resultLine.textContent = \`Error: \${error.error?.message || 'Unknown error'}\`;
+                    resultLine.className = 'result-line error';
+                    approvalSection.style.display = 'none';
+                  }
+                } catch (err) {
+                  resultLine.textContent = 'Failed to connect to server.';
+                  resultLine.className = 'result-line error';
+                  approvalSection.style.display = 'none';
+                }
+              });
+            }
+
+            // Handle approve/deny buttons.
+            if (approveButton && denyButton) {
+              const makeDecision = async (decision) => {
+                if (!deviceCode) {
+                  resultLine.textContent = 'No code entered.';
+                  resultLine.className = 'result-line error';
+                  return;
+                }
+                try {
+                  const response = await fetch('/v1/device/approve', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ user_code: deviceCode, decision })
+                  });
+                  if (response.ok) {
+                    const data = await response.json();
+                    if (data.api_key) {
+                      // We should not show the API key here; the instruction says never reveal an api_key on this endpoint's response page.
+                      // Instead, we tell the user to poll /v1/device/token.
+                      resultLine.textContent = 'Approval successful. Poll /v1/device/token for the API key.';
+                      resultLine.className = 'result-line success';
+                    } else {
+                      resultLine.textContent = decision === 'approve' ? 'Approved.' : 'Denied.';
+                      resultLine.className = 'result-line success';
+                    }
+                    // Clear the code and hide the approval section.
+                    codeInput.value = '';
+                    approvalSection.style.display = 'none';
+                  } else {
+                    const error = await response.json();
+                    resultLine.textContent = \`Error: \${error.error?.message || 'Unknown error'}\`;
+                    resultLine.className = 'result-line error';
+                  }
+                } catch (err) {
+                  resultLine.textContent = 'Failed to connect to server.';
+                  resultLine.className = 'result-line error';
+                }
+              };
+              approveButton.addEventListener('click', () => makeDecision('approve'));
+              denyButton.addEventListener('click', () => makeDecision('deny'));
+            }
+          });
+        </script>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Aegira device approval</h1>
+          <div class="form-group">
+            <label for="device-code">Device code</label>
+            <input type="text" id="device-code" placeholder="Enter the device code (XXXX-XXXX)" />
+            <button id="submit-code">Submit</button>
+          </div>
+          <div id="approval-section" style="display: none;">
+            <div class="form-group">
+              <label for="agent-name">Agent name</label>
+              <p id="agent-name">—</p>
+            </div>
+            <div class="form-group">
+              <label for="actions">Requested actions</label>
+              <p id="actions">—</p>
+            </div>
+            <div class="form-group">
+              <label for="expiry">Expires at</label>
+              <p id="expiry">—</p>
+            </div>
+            <div class="button-group">
+              <button id="approve-button">Approve</button>
+              <button id="deny-button">Deny</button>
+            </div>
+          </div>
+          <div class="result-line" id="result-line" aria-live="polite"></div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return new Response(html, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/html; charset=UTF-8',
+        'Cache-Control': 'no-store',
+        'X-Robots-Tag': 'noindex, nofollow',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'no-referrer',
+        'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonceBase64}'; style-src 'nonce-${nonceBase64}'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`
+      }
+    });
+  }
+
+  if (request.method === 'POST' && path === '/v1/device/approve') {
+    // This should be handled by handleApiRequest, but we keep a fallback.
+    return handleApiRequest(request, env, ctx);
+  }
+
+  // If we reach here, the method is not supported.
+  return notFound();
 }
