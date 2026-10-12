@@ -145,6 +145,17 @@ async function handleApiRequest(request, env, ctx) {
     }
   }
 
+  // Public API: /v1/audit/verify
+  if (path === '/v1/audit/verify' && method === 'GET') {
+    const limit = parseInt(url.searchParams.get('limit') || '20');
+    if (isNaN(limit) || limit < 1 || limit > 50) {
+      return badRequest();
+    }
+    const verified = await stub.verifyAudit(limit);
+    return Response.json(verified);
+  }
+
+
   // Admin API: /v1/admin/*
   if (path.startsWith('/v1/admin/')) {
     // Check for the required headers.
@@ -218,7 +229,7 @@ async function handleAdminPage(request, env, ctx) {
   // Check if the admin password is set.
   const adminPassword = env.AEGIRA_ADMIN_PASSWORD;
   if (!adminPassword || adminPassword === '') {
-    return internalError(); // Admin is not configured.
+    return new Response("Admin is not configured.", { status: 503 }); // Admin is not configured.
   }
 
   // Check IP allowlist if set.

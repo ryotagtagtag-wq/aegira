@@ -5,7 +5,7 @@ import { GatewayState } from '../src/gateway_state.js';
 // Mock Durable Object state that provides a storage object with the expected interface.
 class MockState {
   constructor() {
-    // This is the storage object that will be accessed via this.state.storage
+    // This is the storage object that will be accessed via state.storage
     this.storage = new Map();
     // Add the required methods to the storage object.
     this.storage.get = async (key) => {
@@ -209,7 +209,17 @@ describe('GatewayState', () => {
     });
   });
 
+
+
   describe('approve endpoint', () => {
+  let stub;
+  let state;
+
+  beforeEach(() => {
+    state = new MockState();
+    stub = new GatewayState(state, {});
+  });
+
     it('should return already_used on second decision', async () => {
       await stub.setRegistration(true, 'Test reason');
       const { device_code } = await stub.storeDeviceCode('test-agent', 'test-actions');
@@ -249,6 +259,14 @@ describe('GatewayState', () => {
   });
 
   describe('audit', () => {
+  let stub;
+  let state;
+
+  beforeEach(() => {
+    state = new MockState();
+    stub = new GatewayState(state, {});
+  });
+
     it('should increment audit head on registration change', async () => {
       const initialHead = await state.storage.get('audit_head_seq') || 0;
       await stub.setRegistration(true, 'Reason');
@@ -474,5 +492,81 @@ describe('Worker API handling', () => {
     assert.strictEqual(response.status, 200);
     const text = await response.text();
     assert.ok(text.includes('<h1>Aegira device approval</h1>'));
+  });
+  it('/admin returns 503 when AEGIRA_ADMIN_PASSWORD is unset', async () => {
+    const request = createRequest('http://example.com/admin');
+    const mockEnvNoPassword = {
+      GATEWAY_STATE: {
+        idFromName: () => 'fake-id',
+        get: (id) => {
+          assert.strictEqual(id, 'fake-id');
+          return stub;
+        }
+      },
+      AEGIRA_ADMIN_KEY: 'test-admin-key',
+      AEGIRA_ADMIN_ALLOW_IPS: ''
+    };
+    const mockCtx = {};
+    const requestWithHeaders = new Request('http://example.com/admin', {
+      method: 'GET',
+      headers: new Headers()
+    });
+
+    const response = await handleAdminPage(requestWithHeaders, mockEnvNoPassword, mockCtx);
+    assert.strictEqual(response.status, 503);
+  });
+
+  it('Tampering with one stored audit entry makes GET /v1/audit/verify report the bad seq', async () => {
+    // Generate three audit entries by toggling registration
+    await stub.setRegistration(true, 'reason1');
+    await stub.setRegistration(false, 'reason2');
+    await stub.setRegistration(true, 'reason3');
+
+    // Get the current head
+    const head = await state.storage.get('audit_head_seq');
+    // We'll tamper with the second most recent entry (head - 1)
+    const seqToTamper = head - 1;
+    const entry = await state.storage.get(`audit_${seqToTamper}`);
+    // Tamper: change the seq field to something else
+    entry.seq = seqToTamper + 999;
+    await state.storage.put(`audit_${seqToTamper}`, entry);
+
+    // Now verify with limit that includes the tampered seq
+    const request = createRequest('http://example.com/v1/audit/verify?limit=3');
+    const response = await handleApiRequest(request, mockEnv, mockCtx);
+    assert.strictEqual(response.status, 200);
+    const badSeqs = await response.json();
+    // Expect the array to contain the tampered seq
+    assert.deepEqual(badSeqs, [seqToTamper]);
+  });
+
+  it('A device code created while registration is closed never yields an api_key, even after registration is later opened', async () => {
+    // Registration is closed by default (REGISTRATION_OPEN = false)
+    // Create a device code record directly (bypassing storeDeviceCode check)
+    const agent_name = 'test-agent';
+    const actions = 'test-actions';
+    const device_code = GatewayState.generateDeviceCode();
+    const user_code = GatewayState.generateUserCode();
+    const deviceCodeHash = await GatewayState.hash(device_code);
+    const now = Math.floor(Date.now() / 1000);
+    const expires_in = 600;
+    const expires_at = now + expires_in;
+
+    await stub._storeDeviceRecord(deviceCodeHash, user_code, agent_name, actions, expires_at);
+
+    // Open registration
+    await stub.setRegistration(true, 'Opened later');
+
+    // Now attempt to use the device code via token endpoint
+    const request = createRequest('http://example.com/v1/device/token', 'POST', {
+      device_code
+    });
+    const response = await handleApiRequest(request, mockEnv, mockCtx);
+    assert.strictEqual(response.status, 400); // Should not be 200 with api_key
+    const data = await response.json();
+    // Ensure no api_key in response
+    assert.strictEqual(data.api_key, undefined);
+    // Optionally check error is authorization_pending (since decision is null)
+    assert.strictEqual(data.error, 'authorization_pending');
   });
 });

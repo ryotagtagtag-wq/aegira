@@ -26,9 +26,9 @@ To enable the admin page and API, you must set the following secrets in your Clo
 You can set these secrets using the Cloudflare Dashboard or with Wrangler:
 
 ```bash
-npx wrangler pages secret put AEGIRA_ADMIN_PASSWORD --project-name aegira
-npx wrangler pages secret put AEGIRA_ADMIN_KEY --project-name aegira
-npx wrangler pages secret put AEGIRA_ADMIN_ALLOW_IPS --project-name aegira   # optional
+npx wrangler secret put AEGIRA_ADMIN_PASSWORD --project-name aegira
+npx wrangler secret put AEGIRA_ADMIN_KEY --project-name aegira
+npx wrangler secret put AEGIRA_ADMIN_ALLOW_IPS --project-name aegira   # optional
 ```
 
 ## License

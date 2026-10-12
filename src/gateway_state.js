@@ -155,10 +155,24 @@ class GatewayState {
     return results;
   }
 
-  // Device code handling.
+  // Verify audit entries and return any bad sequence numbers
+  async verifyAudit(limit) {
+    const head = await this.state.storage.get("audit_head_seq") || 0;
+    const badSeqs = [];
+    
+    for (let i = 0; i < limit && head - i > 0; i++) {
+      const seq = head - i;
+      const entry = await this.state.storage.get(`audit_${seq}`);
+      
+      // Check if entry exists and has the correct seq field
+      if (!entry || entry.seq !== seq) {
+        badSeqs.push(seq);
+      }
+    }
+    return badSeqs;
+  }
 
   /**
-   * Store a device code record (internal).
    * @param {string} deviceCodeHash - The SHA-256 hash of the device code.
    * @param {string} user_code - The user code (XXXX-XXXX).
    * @param {string} agent_name - The name of the agent.
