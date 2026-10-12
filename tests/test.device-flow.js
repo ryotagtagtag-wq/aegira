@@ -568,5 +568,34 @@ describe('Worker API handling', () => {
     assert.strictEqual(data.api_key, undefined);
     // Optionally check error is authorization_pending (since decision is null)
     assert.strictEqual(data.error, 'authorization_pending');
+  it('after device code approval, closing registration does not stop api_key delivery and no second api_key', async () => {
+    // Registration is open
+    await stub.setRegistration(true, 'Open for approval');
+
+    // Create and approve a device code
+    const { device_code, user_code } = await stub.storeDeviceCode('test-agent', 'test-actions');
+    await stub.handleApproveRequest(user_code, 'approve');
+
+    // Close registration
+    await stub.setRegistration(false, 'Closed after approval');
+
+    // Attempt to use the device code via token endpoint - should return api_key once
+    let request = createRequest('http://example.com/v1/device/token', 'POST', {
+      device_code
+    });
+    let response = await handleApiRequest(request, mockEnv, mockCtx);
+    assert.strictEqual(response.status, 200);
+    const data = await response.json();
+    assert.ok(data.api_key);
+
+    // Second attempt should not return api_key (should be expired_token)
+    request = createRequest('http://example.com/v1/device/token', 'POST', {
+      device_code
+    });
+    response = await handleApiRequest(request, mockEnv, mockCtx);
+    assert.strictEqual(response.status, 400);
+    const data2 = await response.json();
+    assert.strictEqual(data2.error, 'expired_token');
+  });
   });
 });
